@@ -1,7 +1,7 @@
 {
 	"info": {
-		"_postman_id": "d71a1f64-2929-4fb2-9944-f09d9cbccf14",
-		"name": "[rsoi][lab5] Hotels Booking System Copy",
+		"_postman_id": "48138d53-aef9-401f-b9e4-a7f247c55168",
+		"name": "[rsoi][lab5] Hotels Booking System Copy 3",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "23637919"
 	},
@@ -432,8 +432,7 @@
 								"exec": [
 									"pm.test(\"Получение информации о конкретном бронировании\", () => {",
 									"    pm.response.to.have.status(401)",
-									"})",
-									"setTimeout(() => {}, 100000)"
+									"})"
 								],
 								"type": "text/javascript"
 							}
@@ -442,6 +441,54 @@
 					"request": {
 						"auth": {
 							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceUrl}}/api/v1/reservations/:reservationUid",
+							"host": [
+								"{{serviceUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"reservations",
+								":reservationUid"
+							],
+							"variable": [
+								{
+									"key": "reservationUid",
+									"value": "{{reservationUid}}",
+									"description": "UUID бронирования"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[filler] Стукнуть k8s по башке чтоб не лагал",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authorizationToken}}",
+									"type": "string"
+								}
+							]
 						},
 						"method": "GET",
 						"header": [],
@@ -554,8 +601,7 @@
 								"exec": [
 									"pm.test(\"Получение информации по всем бронированиям\", () => {",
 									"    pm.response.to.have.status(401)",
-									"})",
-									"setTimeout(() => {}, 100000)"
+									"})"
 								],
 								"type": "text/javascript"
 							}
@@ -564,6 +610,35 @@
 					"request": {
 						"auth": {
 							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceUrl}}/api/v1/reservations",
+							"host": [
+								"{{serviceUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"reservations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[filler] Стукнуть k8s по башке еще раз",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authorizationToken}}",
+									"type": "string"
+								}
+							]
 						},
 						"method": "GET",
 						"header": [],
@@ -661,8 +736,7 @@
 								"exec": [
 									"pm.test(\"Получение информации о пользователе\", () => {",
 									"    pm.response.to.have.status(401)",
-									"})",
-									"setTimeout(() => {}, 100000)"
+									"})"
 								],
 								"type": "text/javascript"
 							}
@@ -671,6 +745,35 @@
 					"request": {
 						"auth": {
 							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{serviceUrl}}/api/v1/me",
+							"host": [
+								"{{serviceUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[filler] Стукнуть k8s по башке в последний раз",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authorizationToken}}",
+									"type": "string"
+								}
+							]
 						},
 						"method": "GET",
 						"header": [],
