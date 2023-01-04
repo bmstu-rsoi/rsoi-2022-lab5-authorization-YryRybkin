@@ -104,7 +104,8 @@
 							"script": {
 								"exec": [
 									"pm.test(\"Получение списка отелей\", () => {",
-									"	 console.log(pm.collectionVariables.get(\"authorizationToken\"))",
+									"	 const out = pm.collectionVariables.get(\"authorizationToken\")",
+									"    console.log(out)",
 									"    pm.response.to.have.status(401)",
 									"})"
 								],
