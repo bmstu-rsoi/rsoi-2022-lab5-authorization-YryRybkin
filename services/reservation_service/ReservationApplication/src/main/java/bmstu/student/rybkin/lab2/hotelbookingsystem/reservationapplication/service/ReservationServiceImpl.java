@@ -87,7 +87,7 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<ReservationResponse> getReservations(String username) {
+    public List<ReservationResponse> getReservations(String username, String bearer) {
 
         List<Reservation> reservations = reservationRepo.findAllByUsername(username);
         List<ReservationResponse> resps = new ArrayList<>();
@@ -111,7 +111,7 @@ public class ReservationServiceImpl implements ReservationService {
 
             }
 
-            PaymentInfo paymentInfo = getPaymentInfo(reservation.getPaymentUid());
+            PaymentInfo paymentInfo = getPaymentInfo(reservation.getPaymentUid(), bearer);
 
             resps.add(buildReservationResponse(reservation.getReservationUid(), hotelInfo,
                     reservation.getStartDate(), reservation.getEndDate(), reservation.getStatus(),
@@ -125,7 +125,7 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Transactional(readOnly = true)
     @Override
-    public ReservationResponse getReservation(UUID reservationUid, String username) {
+    public ReservationResponse getReservation(UUID reservationUid, String username, String bearer) {
 
         Reservation reservation = reservationRepo.findByReservationUidAndUsername(
                 reservationUid, username).orElseThrow(
@@ -140,7 +140,7 @@ public class ReservationServiceImpl implements ReservationService {
         hotelInfo = buildHotelInfo(hotel.getHotelUid(), hotel.getName(),
                 fullAddress, hotel.getStars());
 
-        PaymentInfo paymentInfo = getPaymentInfo(reservation.getPaymentUid());
+        PaymentInfo paymentInfo = getPaymentInfo(reservation.getPaymentUid(), bearer);
 
         return buildReservationResponse(reservation.getReservationUid(), hotelInfo, reservation.getStartDate(),
                 reservation.getEndDate(), reservation.getStatus(), paymentInfo);
@@ -151,7 +151,8 @@ public class ReservationServiceImpl implements ReservationService {
     @Transactional
     @Override
     public CreateReservationResponse postReservation(String username,
-                                                     CreateReservationRequest createReservationRequest) {
+                                                     CreateReservationRequest createReservationRequest,
+                                                     String bearer) {
 
         Hotels hotel = hotelsRepo.findByHotelUid(createReservationRequest.getHotelUid()).orElseThrow(
                 () -> new EntityNotFoundException(String.format("Could not find hotel with uid: %s",
@@ -166,6 +167,7 @@ public class ReservationServiceImpl implements ReservationService {
         String resourceUrl = GATEWAYURL + "/loyalty";
         HttpHeaders headers = new HttpHeaders();
         headers.set(X_USER_NAME, username);
+        headers.set("Authorization", bearer);
         ResponseEntity<String> loyaltyResponse = noBodyRestCall(resourceUrl, headers, HttpMethod.GET);
 
         if (loyaltyResponse.getStatusCode() != HttpStatus.OK)
@@ -184,19 +186,19 @@ public class ReservationServiceImpl implements ReservationService {
 
         UUID paymentUid = UUID.randomUUID();
 
-        ResponseEntity<String> posted = postPayment(paymentUid, price);
+        ResponseEntity<String> posted = postPayment(paymentUid, price, bearer);
 
         if (posted.getStatusCode() != HttpStatus.CREATED)
             throw new CancellationException(String.format(
                     "Could not create payment with uid: %s", paymentUid));
 
-        postLoyalty(username);
+        postLoyalty(username, bearer);
 
         Reservation reservation = new Reservation(UUID.randomUUID(), username, paymentUid, hotel.getId(),
                 "PAID", createReservationRequest.getStartDate(), createReservationRequest.getEndDate());
         reservationRepo.save(reservation);
 
-        PaymentInfo paymentInfo = getPaymentInfo(paymentUid);
+        PaymentInfo paymentInfo = getPaymentInfo(paymentUid, bearer);
 
         return buildCreateReservationResponse(reservation.getReservationUid(), hotel.getHotelUid(), reservation.getStartDate(),
                 reservation.getEndDate(), loyaltyInfoResponse.getDiscount(), reservation.getStatus(), paymentInfo);
@@ -205,7 +207,7 @@ public class ReservationServiceImpl implements ReservationService {
 
     @Transactional
     @Override
-    public void cancelReservation(UUID reservationUid, String username) {
+    public void cancelReservation(UUID reservationUid, String username, String bearer) {
 
         Reservation reservation = reservationRepo.findByReservationUidAndUsername(
                 reservationUid, username).orElseThrow(
@@ -216,6 +218,7 @@ public class ReservationServiceImpl implements ReservationService {
         String url = GATEWAYURL + "/payment" +
                 String.format("/%s", reservation.getPaymentUid().toString());
         HttpHeaders paymentHeaders = new HttpHeaders();
+        paymentHeaders.set("Authorization", bearer);
         ResponseEntity<String> deletePayment = noBodyRestCall(url, paymentHeaders, HttpMethod.DELETE);
 
         if (deletePayment.getStatusCode() != HttpStatus.NO_CONTENT)
@@ -225,6 +228,7 @@ public class ReservationServiceImpl implements ReservationService {
         url = GATEWAYURL + "/loyalty";
         HttpHeaders loyaltyHeaders = new HttpHeaders();
         loyaltyHeaders.set(X_USER_NAME, username);
+        loyaltyHeaders.set("Authorization", bearer);
         noBodyRestCall(url, loyaltyHeaders, HttpMethod.DELETE);
 
         reservation.setStatus("CANCELED");
@@ -245,29 +249,32 @@ public class ReservationServiceImpl implements ReservationService {
 
     }
 
-    private ResponseEntity<String> postPayment(UUID paymentUid, Integer price) {
+    private ResponseEntity<String> postPayment(UUID paymentUid, Integer price, String bearer) {
 
         String resourceUrl = GATEWAYURL + "/payment" +
                 String.format("?paymentUid=%s&price=%d", paymentUid.toString(), price);
         HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", bearer);
         return noBodyRestCall(resourceUrl, headers, HttpMethod.POST);
 
     }
 
-    private ResponseEntity<String> postLoyalty(String username) {
+    private ResponseEntity<String> postLoyalty(String username, String bearer) {
 
         String resourceUrl = GATEWAYURL + "/loyalty";
         HttpHeaders headers = new HttpHeaders();
         headers.set(X_USER_NAME, username);
+        headers.set("Authorization", bearer);
         return noBodyRestCall(resourceUrl, headers, HttpMethod.POST);
 
     }
 
-    private PaymentInfo getPaymentInfo(UUID paymenUid) {
+    private PaymentInfo getPaymentInfo(UUID paymenUid, String bearer) {
 
         String resourceUrl = GATEWAYURL + "/payment" +
                 String.format("/%s", paymenUid.toString());
         HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", bearer);
         ResponseEntity<String> response = noBodyRestCall(resourceUrl, headers, HttpMethod.GET);
 
         if (response.getStatusCode() != HttpStatus.OK)
@@ -288,7 +295,7 @@ public class ReservationServiceImpl implements ReservationService {
     private HotelResponse buildHotelResponse(Hotels hotel) {
 
         return new HotelResponse(hotel.getHotelUid(), hotel.getName(), hotel.getCountry(),
-                    hotel.getCity(), hotel.getAddress(), hotel.getStars(), hotel.getPrice());
+                hotel.getCity(), hotel.getAddress(), hotel.getStars(), hotel.getPrice());
 
     }
 

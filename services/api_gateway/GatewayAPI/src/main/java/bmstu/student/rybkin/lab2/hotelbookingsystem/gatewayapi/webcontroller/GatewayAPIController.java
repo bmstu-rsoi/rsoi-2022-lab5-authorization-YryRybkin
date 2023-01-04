@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
@@ -30,10 +31,20 @@ public class GatewayAPIController {
     private static final String RESERVATIONBASEURL = "http://reservation-service:8070/api/v1/services/reservation";
     private static final String X_USER_NAME = "X-User-Name";
 
-    @GetMapping("/")
-    public String home(@AuthenticationPrincipal OidcUser user) {
 
-        return user.toString();
+    @Operation(summary = "Login", operationId = "login")
+    @GetMapping("/authorize")
+    public ResponseEntity<String> authorize() {
+
+        return null;
+
+    }
+
+    @Operation(summary = "Callback", operationId = "callback")
+    @GetMapping("/callback")
+    public ResponseEntity<String> callback() {
+
+        return null;
 
     }
 
@@ -49,12 +60,12 @@ public class GatewayAPIController {
                             schema = @Schema(implementation = ErrorResponse.class))})
     })
     @GetMapping("/loyalty")
-    public ResponseEntity<String> getLoyaltyInfo(@RequestHeader(X_USER_NAME) String username) {
+    public ResponseEntity<String> getLoyaltyInfo(Authentication authentication) {
 
         RestTemplate restTemplate = new RestTemplate();
         String resourceUrl = LOYALTYBASEURL + "/me";
         HttpHeaders headers = new HttpHeaders();
-        headers.set(X_USER_NAME, username);
+        headers.set(X_USER_NAME, authentication.getName());
         HttpEntity<?> request = new HttpEntity<>(headers);
         return restTemplate.exchange(
                 resourceUrl,
@@ -75,12 +86,12 @@ public class GatewayAPIController {
                             schema = @Schema(implementation = ErrorResponse.class))})
     })
     @PostMapping("/loyalty")
-    public ResponseEntity<String> incrementLoyalty(@RequestHeader(X_USER_NAME) String username) {
+    public ResponseEntity<String> incrementLoyalty(Authentication authentication) {
 
         RestTemplate restTemplate = new RestTemplate();
         String resourceUrl = LOYALTYBASEURL + "/me";
         HttpHeaders headers = new HttpHeaders();
-        headers.set(X_USER_NAME, username);
+        headers.set(X_USER_NAME, authentication.getName());
         HttpEntity<?> request = new HttpEntity<>(headers);
         return restTemplate.exchange(
                 resourceUrl,
@@ -102,12 +113,13 @@ public class GatewayAPIController {
                             schema = @Schema(implementation = ErrorResponse.class))})
     })
     @DeleteMapping("/loyalty")
-    public ResponseEntity<String> decrementLoyalty(@RequestHeader(X_USER_NAME) String username) {
+    public ResponseEntity<String> decrementLoyalty(Authentication authentication) {
 
         RestTemplate restTemplate = new RestTemplate();
         String resourceUrl = LOYALTYBASEURL + "/me";
         HttpHeaders headers = new HttpHeaders();
-        headers.set(X_USER_NAME, username);
+        headers.set(X_USER_NAME, authentication.getName());
+        headers.set("Authorization", authentication.toString());
         HttpEntity<?> request = new HttpEntity<>(headers);
         return restTemplate.exchange(
                 resourceUrl,
@@ -180,12 +192,13 @@ public class GatewayAPIController {
                             schema = @Schema(implementation = ErrorResponse.class)) })
     })
     @DeleteMapping("/payment/{paymentUid}")
-    public ResponseEntity<String> cancelPayment(@PathVariable UUID paymentUid) {
+    public ResponseEntity<String> cancelPayment(@PathVariable UUID paymentUid, Authentication authentication) {
 
         RestTemplate restTemplate = new RestTemplate();
         String resourceUrl = PAYMENTBASEURL +
                 String.format("/%s", paymentUid.toString());
         HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", authentication.toString());
         HttpEntity<?> request = new HttpEntity<>(headers);
         return restTemplate.exchange(
                 resourceUrl,
@@ -232,12 +245,14 @@ public class GatewayAPIController {
                             array = @ArraySchema(schema = @Schema(implementation = ReservationResponse.class))) })
     })
     @GetMapping("/reservations")
-    ResponseEntity<String> getReservations(@RequestHeader("X-User-Name") String username) {
+    ResponseEntity<String> getReservations(Authentication authentication,
+                                           @RequestHeader("Authorization") String bearer) {
 
         RestTemplate restTemplate = new RestTemplate();
         String resourceUrl = RESERVATIONBASEURL + "/reservations";
         HttpHeaders headers = new HttpHeaders();
-        headers.set(X_USER_NAME, username);
+        headers.set(X_USER_NAME, authentication.getName());
+        headers.set("Authorization", bearer);
         HttpEntity<?> request = new HttpEntity<>(headers);
         return restTemplate.exchange(
                 resourceUrl,
@@ -259,13 +274,15 @@ public class GatewayAPIController {
     })
     @GetMapping("/reservations/{reservationUid}")
     ResponseEntity<String> getReservation(@PathVariable UUID reservationUid,
-                                          @RequestHeader("X-User-Name") String username) {
+                                          Authentication authentication,
+                                          @RequestHeader("Authorization") String bearer) {
 
         RestTemplate restTemplate = new RestTemplate();
         String resourceUrl = RESERVATIONBASEURL + "/reservations" +
                 String.format("/%s", reservationUid.toString());
         HttpHeaders headers = new HttpHeaders();
-        headers.set(X_USER_NAME, username);
+        headers.set(X_USER_NAME, authentication.getName());
+        headers.set("Authorization", bearer);
         HttpEntity<?> request = new HttpEntity<>(headers);
         return restTemplate.exchange(
                 resourceUrl,
@@ -286,13 +303,15 @@ public class GatewayAPIController {
                             schema = @Schema(implementation = ValidationErrorResponse.class)) })
     })
     @PostMapping("/reservations")
-    ResponseEntity<String> postReservation(@RequestHeader("X-User-Name") String username,
+    ResponseEntity<String> postReservation(Authentication authentication,
+                                           @RequestHeader("Authorization") String bearer,
                                            @Valid @RequestBody CreateReservationRequest createReservationRequest) {
 
         RestTemplate restTemplate = new RestTemplate();
         String resourceUrl = RESERVATIONBASEURL + "/reservations";
         HttpHeaders headers = new HttpHeaders();
-        headers.set(X_USER_NAME, username);
+        headers.set(X_USER_NAME, authentication.getName());
+        headers.set("Authorization", bearer);
         HttpEntity<CreateReservationRequest> request = new HttpEntity<>(createReservationRequest, headers);
         return restTemplate.exchange(
                 resourceUrl,
@@ -315,13 +334,15 @@ public class GatewayAPIController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/reservations/{reservationUid}")
     ResponseEntity<String> cancelReservation(@PathVariable UUID reservationUid,
-                           @RequestHeader("X-User-Name") String username) {
+                                             @RequestHeader("Authorization") String bearer,
+                                             Authentication authentication) {
 
         RestTemplate restTemplate = new RestTemplate();
         String resourceUrl = RESERVATIONBASEURL + "/reservations" +
                 String.format("/%s", reservationUid.toString());
         HttpHeaders headers = new HttpHeaders();
-        headers.set(X_USER_NAME, username);
+        headers.set(X_USER_NAME, authentication.getName());
+        headers.set("Authorization", bearer);
         HttpEntity<?> request = new HttpEntity<>(headers);
         return restTemplate.exchange(
                 resourceUrl,
@@ -341,12 +362,14 @@ public class GatewayAPIController {
                             schema = @Schema(implementation = UserInfoResponse.class)) })
     })
     @GetMapping("/me")
-    UserInfoResponse getMe(@RequestHeader("X-User-Name") String username) {
+    UserInfoResponse getMe(Authentication authentication,
+                           @RequestHeader("Authorization") String bearer) {
 
         RestTemplate restTemplate = new RestTemplate();
         String resourceUrl = RESERVATIONBASEURL + "/reservations";
         HttpHeaders headers = new HttpHeaders();
-        headers.set(X_USER_NAME, username);
+        headers.set("Authorization", bearer);
+        headers.set(X_USER_NAME, authentication.getName());
         HttpEntity<?> request = new HttpEntity<>(headers);
         ResponseEntity<String> reservations = restTemplate.exchange(
                 resourceUrl,
@@ -372,7 +395,7 @@ public class GatewayAPIController {
         RestTemplate loyaltyRestTemplate = new RestTemplate();
         resourceUrl = LOYALTYBASEURL + "/me";
         headers = new HttpHeaders();
-        headers.set(X_USER_NAME, username);
+        headers.set(X_USER_NAME, authentication.getName());
         request = new HttpEntity<>(headers);
         ResponseEntity<String> loyalty = restTemplate.exchange(
                 resourceUrl,

@@ -57,9 +57,10 @@ public class ReservationController {
                             array = @ArraySchema(schema = @Schema(implementation = ReservationResponse.class))) })
     })
     @GetMapping("/reservations")
-    List<ReservationResponse> getReservations(@RequestHeader("X-User-Name") String username) {
+    List<ReservationResponse> getReservations(@RequestHeader("X-User-Name") String username,
+                                              @RequestHeader("Authorization") String bearer) {
 
-        return reservationService.getReservations(username);
+        return reservationService.getReservations(username, bearer);
 
     }
 
@@ -74,9 +75,10 @@ public class ReservationController {
     })
     @GetMapping("/reservations/{reservationUid}")
     ReservationResponse getReservation(@PathVariable UUID reservationUid,
-                                       @RequestHeader("X-User-Name") String username) {
+                                       @RequestHeader("X-User-Name") String username,
+                                       @RequestHeader("Authorization") String bearer) {
 
-        return reservationService.getReservation(reservationUid, username);
+        return reservationService.getReservation(reservationUid, username, bearer);
 
     }
 
@@ -91,9 +93,10 @@ public class ReservationController {
     })
     @PostMapping("/reservations")
     CreateReservationResponse postReservation(@RequestHeader("X-User-Name") String username,
+                                              @RequestHeader("Authorization") String bearer,
                                               @Valid @RequestBody CreateReservationRequest createReservationRequest) {
 
-        return reservationService.postReservation(username, createReservationRequest);
+        return reservationService.postReservation(username, createReservationRequest, bearer);
 
     }
 
@@ -109,10 +112,12 @@ public class ReservationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/reservations/{reservationUid}")
     void cancelReservation(@PathVariable UUID reservationUid,
-                           @RequestHeader("X-User-Name") String username) {
+                           @RequestHeader("X-User-Name") String username,
+                           @RequestHeader("Authorization") String bearer) {
 
-        reservationService.cancelReservation(reservationUid, username);
+        reservationService.cancelReservation(reservationUid, username, bearer);
 
     }
 
 }
+
