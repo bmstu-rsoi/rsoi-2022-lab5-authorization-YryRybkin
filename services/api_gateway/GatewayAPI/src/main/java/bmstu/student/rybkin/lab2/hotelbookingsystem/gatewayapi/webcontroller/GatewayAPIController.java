@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -28,6 +30,12 @@ public class GatewayAPIController {
     private static final String RESERVATIONBASEURL = "http://reservation-service:8070/api/v1/services/reservation";
     private static final String X_USER_NAME = "X-User-Name";
 
+    @GetMapping("/")
+    public String home(@AuthenticationPrincipal OidcUser user) {
+
+        return user.toString();
+
+    }
 
     //------------------------- Loyalty Service --------------------------------------------
 
